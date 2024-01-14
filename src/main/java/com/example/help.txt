@@ -1,0 +1,61 @@
+1.依赖
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-activemq</artifactId>
+</dependency>
+
+# 看自己需要选择
+<dependency>
+    <groupId>org.apache.activemq</groupId>
+    <artifactId>activemq-pool</artifactId>
+    <version>5.12.1</version>
+</dependency>
+
+2.启动类或者配置类注解
+@EnableJms
+消费端不需要该注解？
+
+3.配置
+spring:
+  activemq:
+    broker-url: tcp://127.0.0.1:61616  #activeMQ的ip和端口号
+    user: admin   #activeMq账号
+    password: admin #activeMq密码
+    #是否启用内存模式（也就是不安装MQ，项目启动时同时也启动一个MQ实例）
+#    in-memory: false
+#    packages:
+#      #配置信任所有的包，这个配置为了支持发送对象消息
+#      trust-all: true
+    pool:
+      enabled: true       #连接池启动
+      max-connections: 10 #最大连接数
+    #本地开发关闭jms，自定义的
+    jms:
+      enable: true
+  #开启主题策略，默认是关闭 开启主题模式
+  jms:
+    pub-sub-domain: true
+
+
+4.配置类
+下面这个配置是指明了ActiveMQ的数据转换是用MappingJackson2MessageConverter，将json数据转换为对象，或者将对象转换为json。
+不一定需要
+@Bean
+public JmsListenerContainerFactory<?> myFactory(ConnectionFactory connectionFactory,
+        DefaultJmsListenerContainerFactoryConfigurer configurer) {
+    DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
+    configurer.configure(factory, connectionFactory);
+    factory.setMessageConverter(jacksonJmsMessageConverter());
+    return factory;
+}
+
+@Bean
+public MessageConverter jacksonJmsMessageConverter() {
+    MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
+    converter.setTargetType(MessageType.TEXT);
+    converter.setTypeIdPropertyName("_type");
+    return converter;
+}
+
+5.template的使用
+JmsMessagingTemplate封装了JmsTemplate，两者皆可使用
